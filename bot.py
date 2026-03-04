@@ -5,6 +5,9 @@ import time
 TOKEN = "8337067248:AAE6K1vHDS2D70aoteozwM-1EWW9nVgimDo"
 BASE_URL = f"https://api.telegram.org/bot{TOKEN}/"
 
+ADMIN_ID = 8480843841
+vip_users = {}
+
 states = {}
 
 prompts = [
@@ -91,25 +94,31 @@ Adil Oran:
 Alt: {1/alt_prob:.2f}
 Üst: {1/ust_prob:.2f}"""
         return result
-    except Exception as e:
-        return f"Hesaplama hatası: Lütfen verileri kontrol et ve tekrar /analiz yaz."
+    except:
+        return "Hesaplama hatası."
 
-print("🤖 Bot başlatıldı! Pythonista'da açık tut.")
-print("Telegram'da /analiz yazarak başla.")
+print("🤖 Bot başlatıldı!")
 
 offset = 0
+
 while True:
+
     try:
         updates = get_updates(offset)
+
         if not updates.get("ok"):
             time.sleep(5)
             continue
 
         for u in updates.get("result", []):
+
             offset = u["update_id"] + 1
+
             if "message" not in u:
                 continue
+
             msg = u["message"]
+
             if "text" not in msg:
                 continue
 
@@ -117,51 +126,121 @@ while True:
             text = msg["text"].strip()
 
             if text == "/start":
-                send_message(chat_id, "Merhaba! 2.5 Alt/Üst analizi için\n`/analiz` yaz.")
+                send_message(chat_id,"Merhaba!\nAnaliz için /analiz yaz.")
                 continue
+
+
+            # VIP EKLE
+            if text.startswith("/vip_ekle") and chat_id == ADMIN_ID:
+
+                try:
+
+                    user_id = int(text.split()[1])
+
+                    vip_users[user_id] = time.time() + 7*24*60*60
+
+                    send_message(chat_id,f"{user_id} kullanıcısı 7 gün VIP oldu")
+
+                except:
+
+                    send_message(chat_id,"Kullanım:\n/vip_ekle USER_ID")
+
+                continue
+
+
+            # VIP SİL
+            if text.startswith("/vip_sil") and chat_id == ADMIN_ID:
+
+                try:
+
+                    user_id = int(text.split()[1])
+
+                    vip_users.pop(user_id,None)
+
+                    send_message(chat_id,f"{user_id} VIP silindi")
+
+                except:
+
+                    send_message(chat_id,"Kullanım:\n/vip_sil USER_ID")
+
+                continue
+
 
             if text == "/analiz":
-                states[chat_id] = {"step": 0, "values": {}}
-                send_message(chat_id, prompts[0])
+
+                if chat_id not in vip_users or vip_users[chat_id] < time.time():
+
+                    send_message(chat_id,"❌ Bu komut sadece VIP üyeler içindir.")
+
+                    continue
+
+                states[chat_id] = {"step":0,"values":{}}
+
+                send_message(chat_id,prompts[0])
+
                 continue
 
+
             if chat_id in states:
+
                 step = states[chat_id]["step"]
+
                 values = states[chat_id]["values"]
 
-                if step < 2:  # isimler
+                if step < 2:
+
                     values[keys[step]] = text
-                else:  # sayılar
+
+                else:
+
                     try:
+
                         num = float(text)
-                        if num <= 0 and step in [2, 5, 8, 10]:
-                            raise ValueError
+
                         if num < 0:
+
                             raise ValueError
+
                         values[keys[step]] = num
+
                     except:
-                        send_message(chat_id, "❌ Lütfen pozitif sayı gir!")
-                        send_message(chat_id, prompts[step])
+
+                        send_message(chat_id,"❌ Pozitif sayı gir")
+
+                        send_message(chat_id,prompts[step])
+
                         continue
 
                 step += 1
+
                 states[chat_id]["step"] = step
 
                 if step < len(prompts):
-                    send_message(chat_id, prompts[step])
-                else:
-                    # Hesapla
-                    v = values
-                    result = calculate_alt_ust(
-                        v["home_name"], v["away_name"],
-                        v["home_matches"], v["home_scored"], v["home_conceded"],
-                        v["away_matches"], v["away_scored"], v["away_conceded"],
-                        v["l_home_matches"], v["l_home_goals"],
-                        v["l_away_matches"], v["l_away_goals"]
-                    )
-                    send_message(chat_id, result)
-                    if chat_id in states:
-                        del states[chat_id]
 
-    except Exception:
+                    send_message(chat_id,prompts[step])
+
+                else:
+
+                    v = values
+
+                    result = calculate_alt_ust(
+
+                        v["home_name"], v["away_name"],
+
+                        v["home_matches"], v["home_scored"], v["home_conceded"],
+
+                        v["away_matches"], v["away_scored"], v["away_conceded"],
+
+                        v["l_home_matches"], v["l_home_goals"],
+
+                        v["l_away_matches"], v["l_away_goals"]
+
+                    )
+
+                    send_message(chat_id,result)
+
+                    del states[chat_id]
+
+    except:
+
         time.sleep(5)
