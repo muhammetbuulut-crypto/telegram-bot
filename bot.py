@@ -32,22 +32,22 @@ keys = [
 "l_home_matches","l_home_goals","l_away_matches","l_away_goals"
 ]
 
-def send_message(chat_id, text):
+def send_message(chat_id,text):
     url = BASE_URL + "sendMessage"
-    payload = {"chat_id": chat_id, "text": text}
+    payload = {"chat_id":chat_id,"text":text}
     try:
-        requests.post(url, json=payload, timeout=10)
+        requests.post(url,json=payload,timeout=10)
     except:
         pass
 
 def get_updates(offset):
     url = BASE_URL + "getUpdates"
-    params = {"offset": offset, "timeout": 30}
+    params = {"offset":offset,"timeout":30}
     try:
-        r = requests.get(url, params=params, timeout=40)
+        r = requests.get(url,params=params,timeout=40)
         return r.json()
     except:
-        return {"ok": False}
+        return {"ok":False}
 
 def calculate_alt_ust(home_name,away_name,hm,hs,hc,am,asc,ac,lhm,lhg,lam,lag):
 
@@ -106,7 +106,7 @@ while True:
         time.sleep(5)
         continue
 
-    for u in updates.get("result", []):
+    for u in updates.get("result",[]):
 
         offset = u["update_id"] + 1
 
@@ -128,7 +128,8 @@ while True:
                 send_message(
                     chat_id,
                     "Merhaba 👋\n\n"
-                    "Vip üyeliğiniz olmadığı için botu kullanamıyorsunuz.\n\n"
+                    "Vip Üyeliğiniz Olmadığı İçin Botu Kullanamıyorsunuz.\n\n"
+                    "Lütfen Vip Satın Alın\n"
                     "7 Günlük VIP Ücreti: 200₺\n"
                     "İletişim: @buulutz"
                 )
@@ -137,33 +138,10 @@ while True:
 
                 send_message(
                     chat_id,
-                    "Merhaba Sayın VIP Üye 👑\n\n"
+                    "Merhaba SAYIN VIP ÜYE 👑\n\n"
                     "Komutlar\n"
-                    "/analiz\n"
-                    "/yardım"
+                    "/analiz"
                 )
-
-            continue
-
-        if text == "/yardım":
-
-            send_message(
-                chat_id,
-                "Analiz yapabilmek için aşağıdaki veriler gereklidir.\n\n"
-                "Gerekli Bilgiler (Yapay Zekaya Sorun)\n\n"
-                "Ev Takım Adı\n"
-                "Dep Takım Adı\n\n"
-                "Ev sahibinin evde oynadığı toplam maç sayısı\n"
-                "Ev sahibinin evde attığı toplam gol sayısı\n"
-                "Ev sahibinin evde yediği toplam gol sayısı\n\n"
-                "Deplasman takımının deplasmanda oynadığı toplam maç sayısı\n"
-                "Deplasman takımının deplasmanda attığı toplam gol sayısı\n"
-                "Deplasman takımının deplasmanda yediği toplam gol sayısı\n\n"
-                "Ligdeki toplam ev maç sayısı\n"
-                "Ligdeki tüm ev maçlarında atılan toplam gol sayısı\n\n"
-                "Ligdeki toplam deplasman maç sayısı\n"
-                "Ligdeki tüm deplasman maçlarında atılan toplam gol sayısı"
-            )
 
             continue
 
@@ -172,9 +150,9 @@ while True:
             try:
                 user_id = int(text.split()[1])
                 vip_users[user_id] = time.time() + 604800
-                send_message(chat_id,"VIP eklendi")
+                send_message(chat_id,"VIP eklendi (7 gün)")
             except:
-                send_message(chat_id,"Kullanım /vip_ekle ID")
+                send_message(chat_id,"Kullanım: /vip_ekle ID")
 
             continue
 
@@ -221,7 +199,7 @@ while True:
                 try:
                     values[keys[step]] = float(text)
                 except:
-                    send_message(chat_id,"Sayı giriniz")
+                    send_message(chat_id,"Lütfen sayı giriniz")
                     continue
 
             step += 1
