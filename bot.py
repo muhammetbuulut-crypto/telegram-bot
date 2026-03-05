@@ -4,7 +4,7 @@ import time
 import json
 import os
 
-TOKEN = "BOT_TOKEN"
+TOKEN = "8337067248:AAE6K1vHDS2D70aoteozwM-1EWW9nVgimDo"
 BASE_URL = f"https://api.telegram.org/bot{TOKEN}/"
 
 ADMIN_ID = 123456789
