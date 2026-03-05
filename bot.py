@@ -119,51 +119,14 @@ def calculate_first_half(home_name,away_name,hm,hs,hc,am,asc,ac,lhm,lhg,lam,lag)
         p_away/=total
 
 
-    best=max(p_home,p_draw,p_away)
-
-    if best<0.45:
-        prediction="⚠️ Net tahmin yok"
-    else:
-        if best==p_home:
-            prediction="İY 1"
-        elif best==p_draw:
-            prediction="İY X"
-        else:
-            prediction="İY 2"
-
-
-    lambda_total=lambda_home+lambda_away
-
-    alt=0
-    for k in range(3):
-        alt+=poisson(k,lambda_total)
-
-    ust=1-alt
-
-
-    odd_home=1/p_home if p_home>0 else 0
-    odd_draw=1/p_draw if p_draw>0 else 0
-    odd_away=1/p_away if p_away>0 else 0
-
-    odd_alt=1/alt if alt>0 else 0
-    odd_ust=1/ust if ust>0 else 0
-
-
     result=f"""
 🔥 <b>{home_name} - {away_name}</b>
 
 <b>İLK YARI SONUCU</b>
 
-Tahmin: <b>{prediction}</b>
-
-🏠 1 → %{p_home*100:.1f} | Adil: {odd_home:.2f}
-🤝 X → %{p_draw*100:.1f} | Adil: {odd_draw:.2f}
-🚀 2 → %{p_away*100:.1f} | Adil: {odd_away:.2f}
-
-<b>2.5 ALT / ÜST</b>
-
-🔻 ALT → %{alt*100:.1f} | Adil: {odd_alt:.2f}
-🔺 ÜST → %{ust*100:.1f} | Adil: {odd_ust:.2f}
+🏠 1 → %{p_home*100:.1f}
+🤝 X → %{p_draw*100:.1f}
+🚀 2 → %{p_away*100:.1f}
 
 Beklenen Gol
 Ev: {lambda_home:.2f}
@@ -171,7 +134,6 @@ Dep: {lambda_away:.2f}
 """
 
     return result
-
 
 
 print("BOT BASLADI")
@@ -227,7 +189,6 @@ while True:
             continue
 
 
-
         if text.startswith("/vip_ekle") and chat_id==ADMIN_ID:
 
             try:
@@ -245,7 +206,6 @@ while True:
                 send_message(chat_id,"Kullanım: /vip_ekle ID")
 
             continue
-
 
 
         if text.startswith("/vip_sil") and chat_id==ADMIN_ID:
@@ -266,7 +226,6 @@ while True:
             continue
 
 
-
         if text=="/analiz":
 
             if chat_id not in vip_users or vip_users[chat_id]<time.time():
@@ -281,7 +240,6 @@ while True:
             send_message(chat_id,prompts[0])
 
             continue
-
 
 
         if chat_id in states:
