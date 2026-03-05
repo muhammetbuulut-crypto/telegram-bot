@@ -1,4 +1,4 @@
-oimport requests
+import requests
 import math
 import time
 
@@ -34,7 +34,7 @@ keys = [
 
 def send_message(chat_id,text):
     url = BASE_URL + "sendMessage"
-    payload = {"chat_id":chat_id,"text":text,"parse_mode":"HTML"}
+    payload = {"chat_id":chat_id,"text":text}
     try:
         requests.post(url,json=payload,timeout=10)
     except:
@@ -76,10 +76,10 @@ def calculate_alt_ust(home_name,away_name,hm,hs,hc,am,asc,ac,lhm,lhg,lam,lag):
     ust = 1-alt
 
     result = f"""
-🔥 <b>{home_name} - {away_name}</b>
+🔥 {home_name} - {away_name}
 
-🔺 <b>ÜST 2.5 → %{ust*100:.1f}</b>
-🔻 <b>ALT 2.5 → %{alt*100:.1f}</b>
+🔺 ÜST 2.5 → %{ust*100:.1f}
+🔻 ALT 2.5 → %{alt*100:.1f}
 """
 
     return result
