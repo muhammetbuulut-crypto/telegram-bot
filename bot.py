@@ -34,23 +34,45 @@ if lam <= 0:
 return 1.0 if k == 0 else 0.0
 return math.exp(-lam) * (lam ** k) / math.factorial(k)
 
-def poisson_cumulative(max_k, lam):
-return sum(poisson(k, lam) for k in range(max_k + 1))
+def skor_olasiligi(h, a, lh, la):
+return poisson(h, lh) * poisson(a, la)
 
-def oneri(oran_ust, oran_alt, ust_label, alt_label):
-if oran_ust >= oran_alt:
-return f”🔺 {ust_label} önerilir ✅”
+def mac_sonu(lh, la, max_gol=8):
+ev, ber, dep = 0, 0, 0
+for h in range(max_gol):
+for a in range(max_gol):
+p = skor_olasiligi(h, a, lh, la)
+if h > a:
+ev += p
+elif h == a:
+ber += p
 else:
-return f”🔻 {alt_label} önerilir ✅”
+dep += p
+return ev, ber, dep
+
+def ihalftime_label(h, a):
+if h > a:
+return “1”
+elif h == a:
+return “X”
+else:
+return “2”
+
+def fulltime_label(h, a):
+if h > a:
+return “1”
+elif h == a:
+return “X”
+else:
+return “2”
 
 # ──────────────────────────────────────────────
 
 def calculate(home_name, away_name, hm, hs, hc, am, asc, ac):
+if hm <= 0 or am <= 0:
+return None, “❌ Maç sayısı 0 olamaz.”
 
 ```
-if hm <= 0 or am <= 0:
-    return None, None, "❌ Maç sayısı 0 olamaz."
-
 h_avg_s = hs / hm
 h_avg_c = hc / hm
 a_avg_s = asc / am
@@ -64,45 +86,67 @@ home_defense = h_avg_c / genel_defans if genel_defans > 0 else 1
 away_attack  = a_avg_s / genel_defans if genel_defans > 0 else 1
 away_defense = a_avg_c / genel_hucum  if genel_hucum  > 0 else 1
 
-lambda_home  = max(home_attack * away_defense * genel_hucum,  0.01)
-lambda_away  = max(away_attack * home_defense * genel_defans, 0.01)
-lambda_total = lambda_home + lambda_away
+lambda_home = max(home_attack * away_defense * genel_hucum,  0.01)
+lambda_away = max(away_attack * home_defense * genel_defans, 0.01)
 
-# Alt / Üst
-alt15 = poisson_cumulative(1, lambda_total)
-alt25 = poisson_cumulative(2, lambda_total)
-alt35 = poisson_cumulative(3, lambda_total)
-ust15 = 1 - alt15
-ust25 = 1 - alt25
-ust35 = 1 - alt35
+# İlk yarı için lambda yarıya indirilir (yaklaşık model)
+lh_iy = lambda_home * 0.45
+la_iy = lambda_away * 0.45
 
-# KG
-p_home_sifir = poisson(0, lambda_home)
-p_away_sifir = poisson(0, lambda_away)
-kg_yok = p_home_sifir + p_away_sifir - p_home_sifir * p_away_sifir
-kg_var = 1 - kg_yok
+# Tüm İY/MS kombinasyonlarını hesapla
+max_gol = 7
+iyms = {}
 
-# ── Mesaj 1: Alt / Üst ──
-altust_msg = (
+for h_iy in range(max_gol):
+    for a_iy in range(max_gol):
+        p_iy = skor_olasiligi(h_iy, a_iy, lh_iy, la_iy)
+        if p_iy < 0.0001:
+            continue
+        iy_label = ihalftime_label(h_iy, a_iy)
+
+        for h_ms in range(max_gol):
+            for a_ms in range(max_gol):
+                # Maç sonu skoru ilk yarıdan az olamaz
+                if h_ms < h_iy or a_ms < a_iy:
+                    continue
+
+                # 2. yarı gollerini ayrıca hesapla
+                h_2y = h_ms - h_iy
+                a_2y = a_ms - a_iy
+                lh_2y = lambda_home * 0.55
+                la_2y = lambda_away * 0.55
+                p_2y = skor_olasiligi(h_2y, a_2y, lh_2y, la_2y)
+                if p_2y < 0.0001:
+                    continue
+
+                ms_label = fulltime_label(h_ms, a_ms)
+                key = f"{iy_label}/{ms_label}"
+                iyms[key] = iyms.get(key, 0) + p_iy * p_2y
+
+# En olası İY/MS bul
+en_olasilар = sorted(iyms.items(), key=lambda x: x[1], reverse=True)
+en_iyi_key, en_iyi_oran = en_olasilар[0]
+
+# Maç sonu genel tahmini (bilgi amaçlı)
+ev, ber, dep = mac_sonu(lambda_home, lambda_away)
+if ev >= ber and ev >= dep:
+    ms_genel = f"1 (Ev Sahibi) — %{ev*100:.0f}"
+elif ber >= ev and ber >= dep:
+    ms_genel = f"X (Beraberlik) — %{ber*100:.0f}"
+else:
+    ms_genel = f"2 (Deplasman) — %{dep*100:.0f}"
+
+msg = (
     f"⚽ {home_name} - {away_name}\n"
     f"━━━━━━━━━━━━━━━━\n"
-    f"📊 ALT / ÜST ANALİZİ\n\n"
-    f"1.5  →  {oneri(ust15, alt15, 'ÜST 1.5', 'ALT 1.5')}\n"
-    f"2.5  →  {oneri(ust25, alt25, 'ÜST 2.5', 'ALT 2.5')}\n"
-    f"3.5  →  {oneri(ust35, alt35, 'ÜST 3.5', 'ALT 3.5')}\n"
+    f"📊 İY/MS ANALİZİ\n\n"
+    f"🎯 Öneri:  {en_iyi_key}  ✅\n"
+    f"📈 Olasılık: %{en_iyi_oran*100:.1f}\n\n"
+    f"🏆 Maç Sonu Tahmini: {ms_genel}\n"
     f"━━━━━━━━━━━━━━━━"
 )
 
-# ── Mesaj 2: KG ──
-kg_msg = (
-    f"⚽ {home_name} - {away_name}\n"
-    f"━━━━━━━━━━━━━━━━\n"
-    f"🔵 KG ANALİZİ\n\n"
-    f"{oneri(kg_var, kg_yok, 'KG VAR', 'KG YOK')}\n"
-    f"━━━━━━━━━━━━━━━━"
-)
-
-return altust_msg, kg_msg, None
+return msg, None
 ```
 
 # ──────────────────────────────────────────────
@@ -162,7 +206,7 @@ for u in updates.get("result", []):
             send_message(chat_id,
                 "Merhaba Sayın VIP Üye 👑\n\n"
                 "Komutlar:\n"
-                "/analiz — Maç analizi başlat\n"
+                "/analiz — İY/MS analizi başlat\n"
                 "/iptal  — Analizi iptal et\n"
                 "/vip    — VIP bitiş tarihiniz"
             )
@@ -256,10 +300,10 @@ for u in updates.get("result", []):
         states[chat_id]["step"] = step
 
         if step < len(prompts):
-            send_message(chat_id, prompts[step])
+            send_message(chat_id, f"({step}/{len(prompts)-1}) " + prompts[step])
         else:
             v = values
-            altust_msg, kg_msg, hata = calculate(
+            result, hata = calculate(
                 v["home_name"], v["away_name"],
                 v["home_matches"], v["home_scored"], v["home_conceded"],
                 v["away_matches"], v["away_scored"], v["away_conceded"],
@@ -268,9 +312,7 @@ for u in updates.get("result", []):
             if hata:
                 send_message(chat_id, hata)
             else:
-                send_message(chat_id, altust_msg)
-                time.sleep(0.5)
-                send_message(chat_id, kg_msg)
+                send_message(chat_id, result)
 
             del states[chat_id]
 ```
